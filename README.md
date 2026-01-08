@@ -50,4 +50,4 @@ contexts/BankingContext.tsx: The "brain" of the app, storing user balances and p
 app/(tabs): Main dashboard and navigation layout.
 
 Note for Demo Observers
-This is a Frontend-Focused Prototype. While it simulates real-time data fetching and geographical risk analysis, the logic is self-contained to ensure 100% uptime during live presentations without backend dependency.
+This is a Frontend-Focused Prototype. While it simulates real-time data fetching and geographical risk analysis, the logic is self-contained to ensure 100% uptime during live presentations without backend dependency."# Pivota" 
