@@ -1,50 +1,53 @@
-# Welcome to your Expo app 👋
+Pivota: Secure Fintech Demo 🇳🇬
+Pivota is a high-fidelity mobile banking prototype built to address the "Trust Gap" in Nigerian digital payments. This project showcases advanced fraud prevention UI/UX, including real-time risk scoring and geographical fraud visualization.
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+🛡️ Demo Highlights
+1. Real-Time Fraud Risk Intelligence
+When Alicia selects a recipient, the app dynamically calculates a Trust Score.
 
-## Get started
+Visual Risk Badges: Immediate feedback using "Low", "Medium", or "High" markers.
 
-1. Install dependencies
+The 70% Marker: Contextual percentage scores displayed alongside risk levels to provide data-driven confidence before sending money.
 
-   ```bash
-   npm install
-   ```
+2. Regional Fraud Heatmap (Ikeja Focus)
+A specialized security overlay that connects transaction destinations to known fraud hotspots.
 
-2. Start the app
+Zoomed-In Visualization: A dedicated modal showing street-level maps of high-risk areas like Ikeja Computer Village.
 
-   ```bash
-   npx expo start
-   ```
+Live Stats: Displays real-time fraud incidence rises (e.g., "12% Increase") and specific regional threats like SIM-swap clusters.
 
-In the output, you'll find options to open the app in a
+3. Secure Authorisation
+Integrated PIN-gate for transaction finality, ensuring that security remains paramount even in a fast-paced mobile environment.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+🚀 Get Started
+Install dependencies
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Bash
 
-## Get a fresh project
+npm install
 
-When you're ready, run:
+Start the app
 
-```bash
-npm run reset-project
-```
+Bash
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+npx expo start~
+Scan the QR code with Expo Go (Android) or your Camera app (iOS) to view the demo live.
 
-## Learn more
+🛠️ Technical Implementation
+Navigation: File-based routing via expo-router.
 
-To learn more about developing your project with Expo, look at the following resources:
+State Management: React Context API (BankingContext.tsx) managing balances and beneficiary risk profiles.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+UI Components: Custom animated Modal for heatmaps and ScrollView for smooth quick-select beneficiary interactions.
 
-## Join the community
+Map Visualization: Integration of static mapping URLs to simulate live GPS fraud tracking.
 
-Join our community of developers creating universal apps.
+📂 Project Structure
+app/send.tsx: The core logic for the "Send Money" flow, risk card, and Heatmap Modal.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+contexts/BankingContext.tsx: The "brain" of the app, storing user balances and pre-defined risk scores.
+
+app/(tabs): Main dashboard and navigation layout.
+
+Note for Demo Observers
+This is a Frontend-Focused Prototype. While it simulates real-time data fetching and geographical risk analysis, the logic is self-contained to ensure 100% uptime during live presentations without backend dependency.
