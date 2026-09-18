@@ -1,120 +1,133 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  TextInput, 
-  Alert, 
-  Share, // Fixes "Cannot find name Share"
-  SafeAreaView // Fixes "Cannot find name SafeAreaView"
-} from 'react-native';
-import { useBanking } from '../contexts/BankingContext';
-import { useRouter } from 'expo-router';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useAuth } from '../context/AuthContext'; // ✅ Correct Import
 
-export default function AccountDetailsScreen() {
-  const { userPin, resetPin, balance } = useBanking();
-  const [tempPin, setTempPin] = useState('');
+interface SettingsItemProps {
+  title: string;
+  icon: any;
+  color: string;
+  onPress?: () => void;
+  isDestructive?: boolean;
+}
+
+const SettingsItem = ({ title, icon, color, onPress, isDestructive }: SettingsItemProps) => (
+  <TouchableOpacity style={styles.item} onPress={onPress}>
+    <View style={[styles.iconContainer, { backgroundColor: color + '15' }]}>
+      <Ionicons name={icon} size={22} color={color} />
+    </View>
+    <Text style={[styles.itemTitle, isDestructive && { color: '#EF4444' }]}>{title}</Text>
+    {!isDestructive && <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />}
+  </TouchableOpacity>
+);
+
+export default function SettingsScreen() {
   const router = useRouter();
   
-  
-  // Function to handle the account sharing
-  const onShare = async () => {
-    try {
-      await Share.share({
-        message: `Pivota Account Details\nName: Alicia\nAccount: 0123456789\nBank: Pivota Trust Node`,
-      });
-    } catch (error: any) {
-      Alert.alert(error.message);
-    }
-    };
-  // Mock User Data
-  const userData = {
-    accountName: "Alicia Doe",
-    accountNumber: "0123456789",
-    bankName: "Pivota Bank",
-    phoneNumber: "+234 801 234 5678",
-    userId: "PIV-9920-X"
-  };
+  // ✅ Get the logout function from your Authentication Context
+  const { logout } = useAuth();
 
-const handleUpdate = () => {
-  if (tempPin.length === 4) {
-    resetPin(tempPin);
-    alert("PIN Updated Successfully!");
-    setTempPin('');
-  } else {
-    alert("Please enter a 4-digit PIN");
-  }
-};
-
-  const handleCopy = (text: string) => {
-    // You could use Clipboard.setStringAsync(text) here later!
-    alert(`Copied: ${text}`);
+  const handleLogout = () => {
+    Alert.alert("Logout", "Are you sure you want to log out of Pivota?", [
+      { text: "Cancel", style: "cancel" },
+      { 
+        text: "Logout", 
+        style: "destructive", 
+        onPress: () => logout() // ✅ Call the real logout function
+      }
+    ]);
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Account Details</Text>
-        <View style={{ width: 24 }} />
+        <Text style={styles.headerTitle}>Account Settings</Text>
       </View>
 
-      <View style={styles.content}>
-        <View style={styles.infoCard}>
-          <DetailItem label="BANK NAME" value={userData.bankName} />
-          <DetailItem 
-            label="ACCOUNT NUMBER" 
-            value={userData.accountNumber} 
-            copyable 
-            onCopy={() => handleCopy(userData.accountNumber)} 
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={styles.sectionLabel}>SECURITY & LIMITS</Text>
+        
+        <SettingsItem 
+          title="Personal Information" 
+          icon="person-outline" 
+          color="#6A0DAD" 
+          onPress={() => console.log("Personal Info Pressed")} 
+        />
+        
+        <SettingsItem 
+          title="Bank Limits" 
+          icon="speedometer-outline" 
+          color="#6A0DAD" 
+          onPress={() => router.push('/limits' as any)} 
+        />
+        
+        <SettingsItem 
+          title="Biometrics" 
+          icon="finger-print-outline" 
+          color="#10B981" 
+          onPress={() => console.log("Biometrics Pressed")} 
+        />
+        
+        <SettingsItem 
+          title="Change Transaction PIN" 
+          icon="lock-closed-outline" 
+          color="#6A0DAD" 
+          onPress={() => console.log("Change PIN Pressed")} 
+        />
+
+        <Text style={[styles.sectionLabel, { marginTop: 30 }]}>APP</Text>
+        
+        <SettingsItem 
+          title="Help & Support" 
+          icon="chatbubbles-outline" 
+          color="#3B82F6" 
+          onPress={() => console.log("Support Pressed")} 
+        />
+        
+        {/* LOGOUT BUTTON */}
+        <View style={{ marginTop: 40, marginBottom: 40 }}>
+          <SettingsItem 
+            title="Log Out" 
+            icon="log-out-outline" 
+            color="#EF4444" 
+            onPress={handleLogout}
+            isDestructive={true}
           />
-          <DetailItem label="ACCOUNT NAME" value={userData.accountName} />
-          <DetailItem label="PHONE NUMBER" value={userData.phoneNumber} />
-          <DetailItem label="USER ID" value={userData.userId} />
         </View>
-
-        <TouchableOpacity 
-          style={styles.shareBtn}
-          onPress={() => Share.share({ message: `My Account Details: ${userData.bankName} - ${userData.accountNumber}` })}
-        >
-          <Ionicons name="share-social-outline" size={20} color="#FFF" />
-          <Text style={styles.shareBtnText}>Share Details</Text>
-        </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-// Helper Component for rows
-function DetailItem({ label, value, copyable, onCopy }: any) {
-  return (
-    <View style={styles.detailRow}>
-      <View>
-        <Text style={styles.label}>{label}</Text>
-        <Text style={styles.value}>{value}</Text>
-      </View>
-      {copyable && (
-        <TouchableOpacity onPress={onCopy}>
-          <Ionicons name="copy-outline" size={20} color="#6A0DAD" />
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  headerTitle: { fontSize: 18, fontWeight: '700' },
-  content: { padding: 20 },
-  infoCard: { backgroundColor: '#F9FAFB', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#F3F4F6' },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  label: { fontSize: 11, color: '#9CA3AF', fontWeight: '700', letterSpacing: 1, marginBottom: 4 },
-  value: { fontSize: 16, color: '#1A1A1A', fontWeight: '600' },
-  shareBtn: { backgroundColor: '#6A0DAD', flexDirection: 'row', padding: 18, borderRadius: 15, marginTop: 30, justifyContent: 'center', alignItems: 'center' },
-  shareBtnText: { color: '#fff', fontWeight: 'bold', marginLeft: 10 }
+  container: { flex: 1, backgroundColor: '#FBFAFF' },
+  header: { 
+    padding: 20, 
+    backgroundColor: '#FFF', 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#F3F4F6',
+    paddingTop: 60 
+  },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#1A1A1A' },
+  scrollContent: { paddingVertical: 10 },
+  sectionLabel: { fontSize: 12, fontWeight: '700', color: '#9CA3AF', marginLeft: 20, marginBottom: 10, letterSpacing: 1 },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  iconContainer: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  itemTitle: { flex: 1, fontSize: 16, fontWeight: '600', color: '#1F2937' },
 });

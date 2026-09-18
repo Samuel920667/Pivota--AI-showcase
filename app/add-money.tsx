@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useBanking } from '../contexts/BankingContext';
+import { useBanking } from '../context/BankingContext';
 import { useRouter } from 'expo-router';
 
 export default function AddMoney() {

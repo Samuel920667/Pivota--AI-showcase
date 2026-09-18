@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Colors } from '../constants/theme';
-import { useBanking } from '../contexts/BankingContext';
+import { useBanking } from '../context/BankingContext';
 import { useRouter } from 'expo-router';
 
 export default function CardsScreen() {

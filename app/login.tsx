@@ -1,110 +1,283 @@
 import React, { useState } from 'react';
 import { 
-  StyleSheet, View, Text, TextInput, TouchableOpacity, 
-  SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Alert 
+  View, Text, TextInput, TouchableOpacity, StyleSheet, 
+  SafeAreaView, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert
 } from 'react-native';
-import { Colors } from '../constants/theme';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useAuth } from '../context/AuthContext';
+import API from '../api/api'; 
 
-export default function LoginScreen() {
-  const [isLogin, setIsLogin] = useState(true);
+export default function AuthScreen() {
+  const { login, isLoading } = useAuth();
+  
+  // Modes: "login" or "signup"
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [step, setStep] = useState(1); 
+  const totalSteps = 5;
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [localLoading, setLocalLoading] = useState(false); 
+
+  // --- FORM DATA ---
+  const [loginInput, setLoginInput] = useState('');
+  const [loginPass, setLoginPass] = useState('');
+  
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [idNumber, setIdNumber] = useState(''); 
-  const router = useRouter();
+  const [nin, setNin] = useState('');
+  const [bvn, setBvn] = useState('');
+  const [password, setPassword] = useState('');
+  const [pin, setPin] = useState('');
 
-  const handleAuth = () => {
-    if (isLogin) {
-      router.replace('/(tabs)' as any);
-    } else {
-      router.push('/otp-verification' as any);
+  const clearError = () => setFieldError(null);
+
+  // --- 1. HANDLE LOGIN ---
+  const handleLogin = async () => {
+    clearError();
+    if (!loginInput.trim() || !loginPass.trim()) {
+      return setFieldError("Please enter your credentials");
+    }
+
+    try {
+      // Calls the login function from AuthContext
+      await login(loginInput, loginPass);
+    } catch (error: any) {
+      console.log("❌ UI Login Error:", error);
+      const msg = error.response?.data?.error || "Login failed. Please check your credentials.";
+      setFieldError(msg);
     }
   };
 
+  // --- WIZARD NAVIGATION ---
+  const nextStep = () => {
+    clearError();
+    if (step === 1) { 
+        if (!firstName.trim() || !lastName.trim()) return setFieldError("Names are required");
+        setStep(2);
+    } else if (step === 2) { 
+        if (!email.includes('@') || phone.length < 10) return setFieldError("Invalid contact details");
+        setStep(3);
+    } else if (step === 3) { 
+        if (nin.length > 0 && nin.length !== 11) return setFieldError("NIN must be 11 digits");
+        if (bvn.length > 0 && bvn.length !== 11) return setFieldError("BVN must be 11 digits");
+        setStep(4);
+    } else if (step === 4) { 
+        if (password.length < 6) return setFieldError("Password min 6 chars");
+        setStep(5);
+    }
+  };
+
+  const prevStep = () => { clearError(); setStep(step - 1); };
+
+  // --- 2. HANDLE DIRECT SIGNUP ---
+  const handleDirectSignup = async () => {
+    if (pin.length !== 4) return setFieldError("PIN must be exactly 4 digits");
+
+    setLocalLoading(true);
+    setFieldError(null);
+
+    try {
+        console.log("🔵 UI: Attempting Direct Register...");
+        
+        // ✅ FIXED: Added '/api/auth' prefix to match backend
+        await API.post('/api/auth/register', {
+            first_name: firstName,
+            last_name: lastName,
+            email: email,
+            phone_number: phone,
+            password: password,
+            transaction_pin: pin,
+            nin: nin,
+            bvn: bvn
+        });
+
+        console.log("✅ UI: Account Created. Auto-logging in...");
+        Alert.alert("Success", "Account created successfully!");
+
+        // Auto Login
+        await login(email, password);
+
+    } catch (error: any) {
+        console.log("❌ UI Signup Error:", error);
+        const msg = error.response?.data?.error || "Connection Failed. Check Server.";
+        setFieldError(msg);
+        Alert.alert("Error", msg);
+    } finally {
+        setLocalLoading(false);
+    }
+  };
+
+  const progressWidth = (step / totalSteps) * 100;
+  const isBusy = isLoading || localLoading;
+
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-        style={{ flex: 1 }}
-      >
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.headerSection}>
-            <Text style={styles.logo}>Pivota</Text>
-            <Text style={styles.welcomeTitle}>
-              {isLogin ? 'Welcome Back' : 'Create Account'}
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1}}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          
+          <View style={styles.header}>
+            <Text style={styles.title}>
+                {mode === 'login' ? 'Log into your account' : 'Create Account'}
             </Text>
-            <Text style={styles.subtitle}>Secure banking for the modern Nigerian</Text>
+            <Text style={styles.subtitle}>
+                {mode === 'login' ? 'Enter your details below' : 'Follow the steps to get started'}
+            </Text>
+
+            {mode === 'signup' && (
+                <View style={styles.progressContainer}>
+                    <View style={[styles.progressBar, { width: `${progressWidth}%` }]} />
+                </View>
+            )}
           </View>
 
-          <View style={styles.form}>
-            {!isLogin && (
-              <>
-                <View style={styles.inputWrapper}>
-                  <Text style={styles.inputLabel}>Full Name</Text>
-                  <TextInput style={styles.input} placeholder="John Doe" />
+          {/* ================= LOGIN FORM ================= */}
+          {mode === 'login' && (
+            <>
+                <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Enter your Mobile No. / Email</Text>
+                    <TextInput 
+                        style={[styles.input, fieldError && styles.inputError]} 
+                        placeholder="e.g. 08012345678" 
+                        value={loginInput} 
+                        onChangeText={(t) => {setLoginInput(t); clearError();}} 
+                        autoCapitalize="none"
+                        placeholderTextColor="#9CA3AF"
+                    />
                 </View>
-                <View style={styles.inputWrapper}>
-                  <Text style={styles.inputLabel}>Phone Number</Text>
-                  <TextInput 
-                    style={styles.input} 
-                    placeholder="08012345678" 
-                    keyboardType="phone-pad" 
-                    onChangeText={setPhone}
-                  />
-                </View>
-                <View style={styles.inputWrapper}>
-                  <Text style={styles.inputLabel}>BVN or NIN</Text>
-                  <TextInput 
-                    style={styles.input} 
-                    placeholder="222XXXXXXXX" 
-                    keyboardType="number-pad" 
-                    maxLength={11}
-                    onChangeText={setIdNumber}
-                  />
-                </View>
-              </>
-            )}
 
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>Email Address</Text>
-              <TextInput style={styles.input} placeholder="name@example.com" keyboardType="email-address" />
-            </View>
+                <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Password</Text>
+                    <TextInput 
+                        style={[styles.input, fieldError && styles.inputError]} 
+                        placeholder="Enter password" 
+                        value={loginPass} 
+                        onChangeText={(t) => {setLoginPass(t); clearError();}} 
+                        secureTextEntry
+                        placeholderTextColor="#9CA3AF"
+                    />
+                    {fieldError && <Text style={styles.errorText}>{fieldError}</Text>}
+                </View>
 
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>Password</Text>
-              <TextInput style={styles.input} placeholder="Min. 8 characters" secureTextEntry />
-              {isLogin && (
                 <TouchableOpacity 
-                  onPress={() => Alert.alert("Reset Password", "A reset link has been sent to your email.")}
-                  style={{ alignSelf: 'flex-end', marginTop: 5 }}
+                    style={[styles.primaryBtn, isBusy && {opacity: 0.7}]} 
+                    onPress={handleLogin}
+                    disabled={isBusy}
                 >
-                  <Text style={{ color: Colors.primary, fontSize: 13, fontWeight: '600' }}>
-                    Forgot Password?
-                  </Text>
+                    {isBusy ? <ActivityIndicator color="#FFF"/> : <Text style={styles.btnText}>Sign In</Text>}
                 </TouchableOpacity>
-              )}
-            </View>
 
-            <TouchableOpacity style={styles.primaryBtn} onPress={handleAuth}>
-              <Text style={styles.primaryBtnText}>{isLogin ? 'Sign In' : 'Get Started'}</Text>
-            </TouchableOpacity>
+                <View style={styles.footer}>
+                    <Text style={styles.footerText}>You don't have one? </Text>
+                    <TouchableOpacity onPress={() => {setMode('signup'); setStep(1); clearError();}}>
+                        <Text style={styles.link}>Create Account</Text>
+                    </TouchableOpacity>
+                </View>
+            </>
+          )}
 
-            {isLogin && (
-              <TouchableOpacity style={styles.biometricBtn} onPress={() => Alert.alert("Biometrics", "Authenticate with FaceID/Fingerprint")}>
-                <Ionicons name="finger-print" size={28} color={Colors.primary} />
-                <Text style={styles.biometricText}>Login with Biometrics</Text>
-              </TouchableOpacity>
-            )}
+          {/* ================= SIGNUP WIZARD ================= */}
+          {mode === 'signup' && (
+            <>
+                {step === 1 && (
+                    <View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>First Name</Text>
+                            <TextInput style={styles.input} placeholder="e.g. John" value={firstName} onChangeText={setFirstName}/>
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Last Name</Text>
+                            <TextInput style={styles.input} placeholder="e.g. Doe" value={lastName} onChangeText={setLastName}/>
+                        </View>
+                    </View>
+                )}
+                {step === 2 && (
+                    <View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Email Address</Text>
+                            <TextInput style={styles.input} placeholder="john@example.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none"/>
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Phone Number</Text>
+                            <TextInput style={styles.input} placeholder="080..." value={phone} onChangeText={setPhone} keyboardType="phone-pad"/>
+                        </View>
+                    </View>
+                )}
+                {step === 3 && (
+                    <View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>NIN (National ID)</Text>
+                            <TextInput style={styles.input} placeholder="11-digit NIN" value={nin} onChangeText={(t) => setNin(t.replace(/[^0-9]/g, ''))} maxLength={11} keyboardType="number-pad"/>
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>BVN (Bank Verification)</Text>
+                            <TextInput style={styles.input} placeholder="11-digit BVN" value={bvn} onChangeText={(t) => setBvn(t.replace(/[^0-9]/g, ''))} maxLength={11} keyboardType="number-pad"/>
+                        </View>
+                        <View style={styles.infoBox}>
+                            <Ionicons name="lock-closed" size={14} color="#6A0DAD" />
+                            <Text style={styles.infoText}>Your identity is encrypted and secure.</Text>
+                        </View>
+                    </View>
+                )}
+                {step === 4 && (
+                    <View>
+                         <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Create Password</Text>
+                            <TextInput style={styles.input} placeholder="Min 6 characters" value={password} onChangeText={setPassword} secureTextEntry/>
+                        </View>
+                    </View>
+                )}
+                {step === 5 && (
+                    <View>
+                         <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Create Transaction PIN</Text>
+                            <TextInput 
+                                style={[styles.input, {textAlign: 'center', fontSize: 24, letterSpacing: 10, color: '#6A0DAD', fontWeight: 'bold'}]} 
+                                placeholder="****" 
+                                value={pin} 
+                                onChangeText={(t) => setPin(t.replace(/[^0-9]/g, ''))} 
+                                secureTextEntry keyboardType="numeric" maxLength={4}
+                            />
+                        </View>
+                    </View>
+                )}
 
-            <TouchableOpacity style={styles.toggleBtn} onPress={() => setIsLogin(!isLogin)}>
-              <Text style={styles.toggleText}>
-                {isLogin ? "Don't have an account? " : "Already have an account? "}
-                <Text style={{ color: Colors.primary, fontWeight: '700' }}>
-                  {isLogin ? 'Sign Up' : 'Log In'}
-                </Text>
-              </Text>
-            </TouchableOpacity>
-          </View>
+                {fieldError && (
+                    <View style={styles.errorBox}>
+                        <Ionicons name="alert-circle" size={16} color="#EF4444" />
+                        <Text style={styles.errorText}>{fieldError}</Text>
+                    </View>
+                )}
+
+                <View style={styles.wizardNav}>
+                    {step > 1 ? (
+                        <TouchableOpacity style={styles.backBtn} onPress={prevStep}>
+                            <Ionicons name="arrow-back" size={24} color="#374151" />
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity style={styles.backBtn} onPress={() => setMode('login')}>
+                            <Text style={styles.cancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {step < 5 ? (
+                         <TouchableOpacity style={styles.nextBtn} onPress={nextStep}>
+                            <Text style={styles.btnText}>Next</Text>
+                            <Ionicons name="arrow-forward" size={20} color="#FFF" />
+                         </TouchableOpacity>
+                    ) : (
+                         <TouchableOpacity 
+                            style={[styles.finishBtn, isBusy && {opacity: 0.7}]} 
+                            onPress={handleDirectSignup}
+                            disabled={isBusy}
+                         >
+                            {isBusy ? <ActivityIndicator color="#FFF"/> : <Text style={styles.btnText}>Create Account</Text>}
+                         </TouchableOpacity>
+                    )}
+                </View>
+            </>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -113,29 +286,28 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
-  content: { padding: 30, flexGrow: 1, justifyContent: 'center' },
-  headerSection: { marginBottom: 30 },
-  logo: { fontSize: 32, fontWeight: '900', color: Colors.primary, marginBottom: 10 },
-  welcomeTitle: { fontSize: 24, fontWeight: '700', color: '#1A1A1A' },
-  subtitle: { fontSize: 15, color: '#6B7280', marginTop: 5 },
-  form: { gap: 15 },
-  inputWrapper: { gap: 5 },
-  inputLabel: { fontSize: 13, fontWeight: '600', color: '#374151' },
-  input: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#F3F4F6', padding: 14, borderRadius: 14, fontSize: 15 },
-  primaryBtn: { backgroundColor: Colors.primary, padding: 18, borderRadius: 18, alignItems: 'center', marginTop: 10 },
-  primaryBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
-  toggleBtn: { alignItems: 'center', marginTop: 10 },
-  toggleText: { color: '#6B7280', fontSize: 14 },
-  biometricBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    gap: 10
-  },
-  biometricText: {
-    color: Colors.primary,
-    fontWeight: '600',
-    fontSize: 14
-  },
+  content: { padding: 24, justifyContent: 'center', minHeight: '100%' },
+  header: { marginBottom: 30 },
+  title: { fontSize: 28, fontWeight: '800', color: '#1A1A1A', marginBottom: 8 },
+  subtitle: { fontSize: 16, color: '#6B7280' },
+  progressContainer: { height: 6, backgroundColor: '#F3E8FF', borderRadius: 10, marginTop: 20, width: '100%', overflow: 'hidden' },
+  progressBar: { height: '100%', backgroundColor: '#6A0DAD', borderRadius: 10 },
+  inputGroup: { marginBottom: 20 },
+  label: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 8 },
+  input: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#6A0DAD', borderRadius: 12, padding: 16, fontSize: 16, color: '#1A1A1A' },
+  inputError: { borderColor: '#EF4444', backgroundColor: '#FEF2F2' },
+  infoBox: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#F3E8FF', padding: 10, borderRadius: 8, marginTop: -10, marginBottom: 10 },
+  infoText: { color: '#6A0DAD', fontSize: 12, fontWeight: '600' },
+  errorBox: { flexDirection: 'row', alignItems: 'center', marginTop: -10, marginBottom: 20, gap: 5 },
+  errorText: { color: '#EF4444', fontSize: 13, fontWeight: '600' },
+  primaryBtn: { backgroundColor: '#6A0DAD', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 10 },
+  btnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  wizardNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 30 },
+  backBtn: { padding: 10 },
+  cancelText: { color: '#6B7280', fontSize: 16, fontWeight: '600' },
+  nextBtn: { backgroundColor: '#6A0DAD', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 32, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  finishBtn: { backgroundColor: '#6A0DAD', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 32, alignItems: 'center', gap: 10, flex: 1, marginLeft: 20 },
+  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 40 },
+  footerText: { color: '#6B7280', fontSize: 14 },
+  link: { color: '#6A0DAD', fontSize: 14, fontWeight: '800' },
 });

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { useBanking } from '../contexts/BankingContext';
+import { useBanking } from '../context/BankingContext';
 import { useRouter } from 'expo-router';
 
 export default function SetPin() {

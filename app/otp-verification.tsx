@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+
 export default function OTPVerification() {
   const [code, setCode] = useState(['', '', '', '']);
   const [timer, setTimer] = useState(30);

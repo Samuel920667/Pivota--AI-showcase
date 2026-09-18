@@ -1,4 +1,4 @@
-Pivota: Secure Fintech Demo 🇳🇬
+`   Pivota: Secure Fintech Demo 🇳🇬
 Pivota is a high-fidelity mobile banking prototype built to address the "Trust Gap" in Nigerian digital payments. This project showcases advanced fraud prevention UI/UX, including real-time risk scoring and geographical fraud visualization.
 
 🛡️ Demo Highlights

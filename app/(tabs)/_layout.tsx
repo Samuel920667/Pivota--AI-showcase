@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/theme';
+import { Platform, View } from 'react-native';
 
 export default function TabLayout() {
   return (
@@ -11,9 +11,24 @@ export default function TabLayout() {
         tabBarInactiveTintColor: '#9CA3AF',
         headerShown: false,
         tabBarStyle: {
-          height: 60,
-          paddingBottom: 10,
+          // ✅ Standard App Height & Elevation
+          height: Platform.OS === 'ios' ? 90 : 70, 
+          paddingBottom: Platform.OS === 'ios' ? 30 : 12,
+          paddingTop: 10,
+          backgroundColor: '#FFF',
+          borderTopWidth: 1,
+          borderTopColor: '#F3F4F6',
+          // Floating effect logic
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          elevation: 0,
         },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+        }
       }}
     >
       <Tabs.Screen
@@ -47,6 +62,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="settings" size={24} color={color} />,
         }}
       />
-    </Tabs> // This is the closing tag that was missing!
+    </Tabs>
   );
 }
